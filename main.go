@@ -108,7 +108,7 @@ func parseRange(val string, interval string, field string) ([]int, error) {
 	}
 	ival, err := strconv.Atoi(val)
 	if err != nil {
-		return nil, errors.New("cannot parse to to int(val)")
+		return nil, errors.New("cannot parse to int(val)")
 	}
 	if ival < limits[field].min || ival > limits[field].max {
 		return nil, errors.New("value error got " + val + " must be between " + strconv.Itoa(limits[field].min) + "-" + strconv.Itoa(limits[field].max))
@@ -186,7 +186,10 @@ func run() error {
 	blocks := strings.Split(args[0], " ")
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', tabwriter.Debug)
 	for i, block := range blocks[:5] {
-		vals, _ := ParseField(fields[i], block)
+		vals, err := ParseField(fields[i], block)
+		if err != nil {
+			return errors.New(fields[i] + " error:(" + block + ") " + err.Error())
+		}
 		fmt.Fprintln(w, fields[i], "\t", vals)
 	}
 	fmt.Fprintln(w, "command", "\t", blocks[len(blocks)-1])
