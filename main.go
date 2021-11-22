@@ -49,15 +49,13 @@ var fields = []string{
 
 var cronRe = regexp.MustCompile(`^((?:[^\s]+\s+){5}(?:\d{4})?)(?:\s+)?(.*)`)
 var onlyDigit = regexp.MustCompile("^[0-9]*$")
+var validChars = regexp.MustCompile(`^[\d|/|*|\-|,]+$`)
 
 func main() {
 	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
-	// withoutCommand := expression[:5]
-	// cep := cep{withoutCommand[0], withoutCommand[1], withoutCommand[2], withoutCommand[3], withoutCommand[4], expression[5]}
-	// fmt.Println(cep)
 }
 
 func parseRepeat(val string, field string) ([]int, error) {
@@ -78,11 +76,11 @@ func parseRange(val string, interval string, field string) ([]int, error) {
 	if len(exp) > 1 {
 		start, err := strconv.Atoi(exp[0])
 		if err != nil {
-			return nil, errors.New("cannot parse value to int(start)")
+			return nil, errors.New("invalid number value provided for range start: " + exp[0])
 		}
 		end, err := strconv.Atoi(exp[1])
 		if err != nil {
-			return nil, errors.New("cannot parse value to int(end)")
+			return nil, errors.New("invalid number value provided for range end: " + exp[1])
 		}
 
 		if start < limits[field].min || end > limits[field].max {
@@ -94,7 +92,7 @@ func parseRange(val string, interval string, field string) ([]int, error) {
 
 		inc, err := strconv.Atoi(interval)
 		if err != nil {
-			return nil, errors.New("cannot parse value to int(interval)")
+			return nil, errors.New("invalid number value provided for interval")
 		}
 		if inc <= 0 {
 			return nil, errors.New("invalid interval " + interval)
@@ -108,7 +106,7 @@ func parseRange(val string, interval string, field string) ([]int, error) {
 	}
 	ival, err := strconv.Atoi(val)
 	if err != nil {
-		return nil, errors.New("cannot parse to int(val)")
+		return nil, errors.New("invalid number value")
 	}
 	if ival < limits[field].min || ival > limits[field].max {
 		return nil, errors.New("value error got " + val + " must be between " + strconv.Itoa(limits[field].min) + "-" + strconv.Itoa(limits[field].max))
@@ -166,6 +164,7 @@ func ParseField(field string, expression string) (string, error) {
 		vals, err = parseRepeat(expression, field)
 	}
 
+	// Cleaning
 	vals = removeDuplicates(vals)
 	sort.Ints(vals)
 	arr := converToStrArr(vals)
@@ -186,6 +185,9 @@ func run() error {
 	blocks := strings.Split(args[0], " ")
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', tabwriter.Debug)
 	for i, block := range blocks[:5] {
+		if !validChars.MatchString(block) {
+			return errors.New("Invalid characters: " + block)
+		}
 		vals, err := ParseField(fields[i], block)
 		if err != nil {
 			return errors.New(fields[i] + " error:(" + block + ") " + err.Error())
